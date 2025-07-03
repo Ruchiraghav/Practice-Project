@@ -1,6 +1,13 @@
+const http = require("http");
 const express = require("express");
 const mongoose = require("mongoose");
 require("dotenv").config();
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const app = express();
+const port = process.env.port || 3000;
+const cors = require("cors");
+const verifyToken = require("./middleware/aut");
 
 const {
   savestudent,
@@ -8,12 +15,12 @@ const {
   showstudents,
   deletestudent,
   updatestudent,
+  registerstudent,
+  loginstudent,
 } = require("./controller/saveController");
 
+const server = http.createServer(app);
 
-const app = express();
-const port = process.env.port || 3000;
-const cors = require("cors");
 app.use(cors());
 const router = express.Router();
 module.exports = router;
@@ -34,11 +41,14 @@ mongoose
     console.error("MongoDB connection error:", err);
   });
 
-app.post("/student", savestudent);
+// Open routes:
+app.post("/register", registerstudent);
+app.post("/login", loginstudent);
 
-app.get("/students", showstudents);
-
-app.delete("/student/:name", deletestudent);
-
-app.put("/student/:name", updatestudent);
-app.get("/student/:name", showstudent);
+// Protect all routes below this line
+app.use(verifyToken);
+app.post("/students", verifyToken, savestudent);
+app.get("/students", verifyToken, showstudents);
+app.delete("/student/:name", verifyToken, deletestudent);
+app.put("/student/:name", verifyToken, updatestudent);
+app.get("/student/:name", verifyToken, showstudent);
